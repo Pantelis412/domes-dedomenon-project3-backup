@@ -9,6 +9,10 @@ UsingHashTable_ADTMap_test_OBJS		= ADTMap_test.o $(MODULES)/UsingHashTable/ADTMa
 #
 UsingCuckooHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingCuckooHash/ADTMap.o
 
+# Υλοποιήσεις μέσω HashWithSet: ADTMap
+#
+UsingHashWithSet_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHashWithSet/ADTMap.o
+
 
 # Ο βασικός κορμός του Makefile
 include ../common.mk
