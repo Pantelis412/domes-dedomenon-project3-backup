@@ -47,6 +47,8 @@ void insert_and_test(Map map, Pointer key, Pointer value) {
 
 // Βοηθητική συνάρτηση για το ανακάτεμα του πίνακα τιμών
 void shuffle(int* array[], int n) {
+	srand(0);		 // Για να έχουμε τα ίδια αποτελέσματα κάθε φορά
+
 	for (int i = 0; i < n; i++) {
 		int j = i + rand() / (RAND_MAX / (n - i) + 1);
 		int* t = array[j];
@@ -248,8 +250,6 @@ void test_iterate(void) {
 
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
-	// { "create", test_create },
-
 	{ "map_create", test_create },
 	{ "map_insert", test_insert },
 	{ "map_remove", test_remove },
