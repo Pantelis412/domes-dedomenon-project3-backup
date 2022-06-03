@@ -17,7 +17,6 @@ int compare_ints(Pointer a, Pointer b) {
 
 
 void test_create(void) {
-
 	// Δημιουργούμε μια κενή λίστα (χωρίς αυτόματο free)
 	Map map = map_create(compare_ints, NULL, NULL);
 	map_set_hash_function(map, hash_int);
@@ -57,8 +56,24 @@ void shuffle(int* array[], int n) {
 	}
 }
 
-void test_insert(void) {
+void test_simple_insert(void) {
+	Map map = map_create((CompareFunc)strcmp, NULL, NULL);
+	map_set_hash_function(map, hash_string);
 
+	int value1 = 1;
+	int value2 = 2;
+
+	map_insert(map, "foo", &value1);
+	map_insert(map, "bar", &value2);
+
+	TEST_ASSERT(map_size(map) == 2);
+	TEST_ASSERT(map_find(map, "foo") == &value1);
+	TEST_ASSERT(map_find(map, "bar") == &value2);
+
+	map_destroy(map);
+}
+
+void test_insert(void) {
 	Map map = map_create(compare_ints, free, free);
 	map_set_hash_function(map, hash_int);
 
@@ -126,9 +141,25 @@ void test_insert(void) {
 	map_destroy(map3);
 }
 
+void test_simple_remove(void) {
+	Map map = map_create((CompareFunc)strcmp, NULL, NULL);
+	map_set_hash_function(map, hash_string);
+
+	int value = 1;
+
+	map_insert(map, "foo", &value);
+
+	TEST_ASSERT(map_size(map) == 1);
+	TEST_ASSERT(map_find(map, "foo") == &value);
+
+	TEST_ASSERT(map_remove(map, "foo"));
+	TEST_ASSERT(map_find(map, "foo") == NULL);
+	TEST_ASSERT(map_size(map) == 0);
+
+	map_destroy(map);
+}
 
 void test_remove(void) {
-
 	Map map = map_create(compare_ints, free, free);
 	map_set_hash_function(map, hash_int);
 
@@ -166,9 +197,7 @@ void test_remove(void) {
 	free(value_array);
 }
 
-
 void test_find(void) {
-
 	Map map = map_create(compare_ints, free, free);
 	map_set_hash_function(map, hash_int);
 
@@ -248,13 +277,139 @@ void test_iterate(void) {
 	map_destroy(map);
 }
 
+// Δοκιμή συνδυασμού λειτουργιών
+void test_combined(void) {
+	srand(0);		 // Για να έχουμε τα ίδια αποτελέσματα κάθε φορά
+
+	Map map = map_create(compare_ints, free, free);
+	map_set_hash_function(map, hash_int);
+
+	// Εισάγουμε την ακολουθία step, 2*step, 3*step, κλπ. Σε κάθε βήμα επιλέγουμε τυχαία αν θα κάνουμε εισαγωγή ή διαγραφή
+	int last_inserted = 0;
+	int last_deleted = 0;
+	int step = 3;
+	int N = 100000;
+
+	for (int i = 0; i < N; i++) {
+		// Διαγραφή με πιθανότητα 1/3 (και μόνο αν δεν έχουμε διαγράψει όλα τα στοιχεία)
+		bool do_remove = last_deleted != last_inserted && rand() % 3 == 0;
+		if(do_remove) {
+			last_deleted += step;
+			TEST_ASSERT(*(int*)map_find(map, &last_deleted) == last_deleted);
+			TEST_ASSERT(map_remove(map, &last_deleted));
+			TEST_ASSERT(map_find(map, &last_deleted) == NULL);
+		} else {
+			last_inserted += step;
+			TEST_ASSERT(map_find(map, &last_inserted) == NULL);
+			map_insert(map, create_int(last_inserted), create_int(last_inserted));
+			TEST_ASSERT(*(int*)map_find(map, &last_inserted) == last_inserted);
+		}
+
+		TEST_ASSERT(map_size(map) == (last_inserted - last_deleted) / step);
+	}
+
+	// Διάσχιση
+	int count = 0;
+	for (MapNode node = map_first(map); node != MAP_EOF; node = map_next(map, node)) {
+		int val = *(int*)map_node_value(map, node);
+		TEST_ASSERT(val > last_deleted && val <= last_inserted);
+		count++;
+	}
+	TEST_ASSERT(count == (last_inserted - last_deleted) / step);
+
+	// Διαγραφή όσων στοιχείων έχουν μείνει
+	while(last_deleted != last_inserted) {
+		last_deleted += step;
+		TEST_ASSERT(*(int*)map_find(map, &last_deleted) == last_deleted);
+		TEST_ASSERT(map_remove(map, &last_deleted));
+		TEST_ASSERT(map_find(map, &last_deleted) == NULL);
+	}
+	
+	TEST_ASSERT(map_size(map) == 0);
+
+	map_destroy(map);
+}
+
+// Εναλλακτική δοκιμή συνδυασμού λειτουργιών
+void test_combined2(void) {
+	srand(0);		 // Για να έχουμε τα ίδια αποτελέσματα κάθε φορά
+
+	Map map = map_create(compare_ints, NULL, free);
+	map_set_hash_function(map, hash_int);
+
+	// Δημιουργία N τυχαίων στοιχείων
+	int N = 1000;
+	int* key_array = malloc(N * sizeof(*key_array));
+	bool* inserted = malloc(N * sizeof(*inserted));
+	int inserted_no = 0;
+	for(int i = 0; i < N; i++) {
+		key_array[i] = rand();
+		inserted[i] = 0;
+	}
+
+	// Σε κάθε επανάληψη επιλέγουμε ένα από τα N στοιχεία. Αν δεν υπάρχει στο map το εισάγουμε,
+	// με την τιμή ως key, και τη θέση της τιμή στον πίνακα ως value.
+	for (int i = 0; i < 100 * N; i++) {
+		int pos = rand() % N;
+		int* key = &key_array[pos];
+
+		if (inserted[pos]) {
+			TEST_ASSERT(*(int*)map_find(map, key) == pos);
+			TEST_ASSERT(map_remove(map, key));
+			TEST_ASSERT(map_find(map, key) == NULL);
+
+			inserted[pos] = 0;
+			inserted_no--;
+		} else {
+			TEST_ASSERT(map_find(map, key) == NULL);
+			map_insert(map, key, create_int(pos));		// key => pos
+			TEST_ASSERT(*(int*)map_find(map, key) == pos);
+
+			inserted[pos] = 1;
+			inserted_no++;
+		}
+
+		TEST_ASSERT(map_size(map) == inserted_no);
+	}
+
+	// Διάσχιση
+	int count = 0;
+	for (MapNode node = map_first(map); node != MAP_EOF; node = map_next(map, node)) {
+		int* key = map_node_key(map, node);
+		int value = *(int*)map_node_value(map, node);
+		TEST_ASSERT(inserted[value] && &key_array[value] == key);
+		count++;
+	}
+	TEST_ASSERT(count == inserted_no);
+
+	// Διαγραφή όσων στοιχείων έχουν μείνει
+	for (int i = 0; i < N; i++) {
+		if (inserted[i]) {
+			int* key = &key_array[i];
+			TEST_ASSERT(*(int*)map_find(map, key) == i);
+			TEST_ASSERT(map_remove(map, key));
+			TEST_ASSERT(map_find(map, key) == NULL);
+		}
+	}
+	
+	TEST_ASSERT(map_size(map) == 0);
+
+	map_destroy(map);
+	free(key_array);
+	free(inserted);
+}
+
 // Λίστα με όλα τα tests προς εκτέλεση
 TEST_LIST = {
-	{ "map_create", test_create },
-	{ "map_insert", test_insert },
-	{ "map_remove", test_remove },
-	{ "map_find", 	test_find },
-	{ "map_iterate",test_iterate },
+	{ "test_create",		test_create },
+	{ "test_simple_insert",	test_simple_insert },
+	{ "test_insert",		test_insert },
+	{ "test_simple_remove",	test_simple_remove },
+	{ "test_remove",		test_remove },
+	{ "test_find",			test_find },
+	{ "test_iterate",		test_iterate },
+	{ "test_combined",		test_combined },
+	{ "test_combined2",		test_combined2 },
 
 	{ NULL, NULL } // τερματίζουμε τη λίστα με NULL
 }; 
