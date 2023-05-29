@@ -5,13 +5,13 @@
 #
 UsingHashTable_ADTMap_test_OBJS		= ADTMap_test.o $(MODULES)/UsingHashTable/ADTMap.o
 
-# Υλοποιήσεις μέσω CuckooHash: ADTMap
+# Υλοποιήσεις μέσω HopscotchHash: ADTMap
 #
-UsingCuckooHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingCuckooHash/ADTMap.o
+UsingHopscotchHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHopscotchHash/ADTMap.o
 
-# Υλοποιήσεις μέσω HashWithSet: ADTMap
+# Υλοποιήσεις μέσω HybridHash: ADTMap
 #
-UsingHashWithSet_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHashWithSet/ADTMap.o
+UsingHybridHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHybridHash/ADTMap.o
 
 
 # Ο βασικός κορμός του Makefile
