@@ -6,16 +6,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: make UsingHybridHash_ADTMap_test
-        run: cd tests && make UsingHybridHash_ADTMap_test
+      - name: make UsingHashTable_ADTMap_test
+        run: cd tests && make UsingHashTable_ADTMap_test
         continue-on-error: true
 
-      - name: Run UsingHybridHash_ADTMap_test
-        run: (cd tests && ./UsingHybridHash_ADTMap_test) || true
-
-      - name: make UsingHopscotchHash_ADTMap_test
-        run: cd tests && make UsingHopscotchHash_ADTMap_test
-        continue-on-error: true
-
-      - name: Run UsingHopscotchHash_ADTMap_test
-        run: (cd tests && ./UsingHopscotchHash_ADTMap_test) || true
+      - name: Run UsingHashTable_ADTMap_test
+        run: (cd tests && ./UsingHashTable_ADTMap_test) || true

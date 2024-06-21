@@ -5,6 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdlib.h>
+#include <assert.h>
 
 #include "ADTMap.h"
 
@@ -43,6 +44,12 @@ struct map {
 	HashFunc hash_function;		// Συνάρτηση για να παίρνουμε το hash code του κάθε αντικειμένου.
 	DestroyFunc destroy_key;	// Συναρτήσεις που καλούνται όταν διαγράφουμε έναν κόμβο απο το map.
 	DestroyFunc destroy_value;
+
+	// Πεδία που έχουμε προσθέσει για το incremental rehash.
+	// Προσθέστε επιπλέον πεδία, αν χρειαστούν.
+	//
+	MapNode old_array;			// Ο παλιός πίνακας από τον οποίο κάνουμε incremental rehash
+	int old_capacity;			// Πόσο χώρο είχαμε δεσμεύσει στον παλιό πίνακα
 };
 
 
@@ -51,6 +58,10 @@ Map map_create(CompareFunc compare, DestroyFunc destroy_key, DestroyFunc destroy
 	Map map = malloc(sizeof(*map));
 	map->capacity = prime_sizes[0];
 	map->array = malloc(map->capacity * sizeof(struct map_node));
+
+	// Σε ένα καινούριο map ο παλιός πίνακας είναι απλά κενός
+	map->old_capacity = 0;
+	map->old_array = NULL;
 
 	// Αρχικοποιούμε τους κόμβους που έχουμε σαν διαθέσιμους.
 	for (int i = 0; i < map->capacity; i++)
@@ -68,39 +79,6 @@ Map map_create(CompareFunc compare, DestroyFunc destroy_key, DestroyFunc destroy
 // Επιστρέφει τον αριθμό των entries του map σε μία χρονική στιγμή.
 int map_size(Map map) {
 	return map->size;
-}
-
-// Συνάρτηση για την επέκταση του Hash Table σε περίπτωση που ο load factor μεγαλώσει πολύ.
-static void rehash(Map map) {
-	// Αποθήκευση των παλιών δεδομένων
-	int old_capacity = map->capacity;
-	MapNode old_array = map->array;
-
-	// Βρίσκουμε τη νέα χωρητικότητα, διασχίζοντας τη λίστα των πρώτων ώστε να βρούμε τον επόμενο. 
-	int prime_no = sizeof(prime_sizes) / sizeof(int);	// το μέγεθος του πίνακα
-	for (int i = 0; i < prime_no; i++) {					// LCOV_EXCL_LINE
-		if (prime_sizes[i] > old_capacity) {
-			map->capacity = prime_sizes[i]; 
-			break;
-		}
-	}
-	// Αν έχουμε εξαντλήσει όλους τους πρώτους, διπλασιάζουμε
-	if (map->capacity == old_capacity)					// LCOV_EXCL_LINE
-		map->capacity *= 2;								// LCOV_EXCL_LINE
-
-	// Δημιουργούμε ένα μεγαλύτερο hash table
-	map->array = malloc(map->capacity * sizeof(struct map_node));
-	for (int i = 0; i < map->capacity; i++)
-		map->array[i].state = EMPTY;
-
-	// Τοποθετούμε ΜΟΝΟ τα entries που όντως περιέχουν ένα στοιχείο (το rehash είναι και μία ευκαιρία να ξεφορτωθούμε τα deleted nodes)
-	map->size = 0;
-	for (int i = 0; i < old_capacity; i++)
-		if (old_array[i].state == OCCUPIED)
-			map_insert(map, old_array[i].key, old_array[i].value);
-
-	//Αποδεσμεύουμε τον παλιό πίνακα ώστε να μήν έχουμε leaks
-	free(old_array);
 }
 
 // Εισαγωγή στο hash table του ζευγαριού (key, item). Αν το key υπάρχει,
@@ -156,8 +134,17 @@ void map_insert(Map map, Pointer key, Pointer value) {
 	// Αν με την νέα εισαγωγή ξεπερνάμε το μέγιστο load factor, πρέπει να κάνουμε rehash.
 	// Στο load factor μετράμε και τα DELETED, γιατί και αυτά επηρρεάζουν τις αναζητήσεις.
 	float load_factor = (float)(map->size + map->deleted) / map->capacity;
-	if (load_factor > MAX_LOAD_FACTOR)
-		rehash(map);
+	if (load_factor > MAX_LOAD_FACTOR) {
+		// TODO
+		//
+		// Στην κλασική υλοποίηση εδώ κάναμε το rehash. Τώρα θα πρέπει να
+		// ξεκινήσουμε το incremental rehash, και να το συνεχίζουμε σε κάθε
+		// μελλοντικό insert.
+
+		// Το παρακάτω assert ελέγχει ότι δεν ξεπερνάμε το μέγιστο συντελεστή
+		// πληρότητας, θα αποτύχει μέχρι να υλοποιηθεί το incremental rehash.
+		assert((float)(map->size + map->deleted) / map->capacity <= MAX_LOAD_FACTOR);
+	}
 }
 
 // Διαργραφή απο το Hash Table του κλειδιού με τιμή key

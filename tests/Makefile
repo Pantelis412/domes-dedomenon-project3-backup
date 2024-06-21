@@ -5,14 +5,6 @@
 #
 UsingHashTable_ADTMap_test_OBJS		= ADTMap_test.o $(MODULES)/UsingHashTable/ADTMap.o
 
-# Υλοποιήσεις μέσω HopscotchHash: ADTMap
-#
-UsingHopscotchHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHopscotchHash/ADTMap.o
-
-# Υλοποιήσεις μέσω HybridHash: ADTMap
-#
-UsingHybridHash_ADTMap_test_OBJS	= ADTMap_test.o $(MODULES)/UsingHybridHash/ADTMap.o
-
 
 # Ο βασικός κορμός του Makefile
 include ../common.mk
