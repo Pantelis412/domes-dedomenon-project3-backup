@@ -148,6 +148,7 @@ void map_insert(Map map, Pointer key, Pointer value) {
 			map->capacity=prime_sizes[++prime];
 		else
 			map->capacity=2*(map->capacity);
+		map->array = malloc(map->capacity * sizeof(struct map_node));
 		incremental_counter=0;
 		flag=true;
 		// Το παρακάτω assert ελέγχει ότι δεν ξεπερνάμε το μέγιστο συντελεστή
