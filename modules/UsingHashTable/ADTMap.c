@@ -83,7 +83,9 @@ int map_size(Map map) {
 
 // Εισαγωγή στο hash table του ζευγαριού (key, item). Αν το key υπάρχει,
 // ανανέωση του με ένα νέο value, και η συνάρτηση επιστρέφει true.
-
+int prime=0; //βοηθητική μεταβλητη για το rehash
+int incremental_counter;
+bool flag=false;
 void map_insert(Map map, Pointer key, Pointer value) {
 	// Σκανάρουμε το Hash Table μέχρι να βρούμε διαθέσιμη θέση για να τοποθετήσουμε το ζευγάρι,
 	// ή μέχρι να βρούμε το κλειδί ώστε να το αντικαταστήσουμε.
@@ -140,10 +142,27 @@ void map_insert(Map map, Pointer key, Pointer value) {
 		// Στην κλασική υλοποίηση εδώ κάναμε το rehash. Τώρα θα πρέπει να
 		// ξεκινήσουμε το incremental rehash, και να το συνεχίζουμε σε κάθε
 		// μελλοντικό insert.
-
+		map->old_array=map->array;
+		map->old_capacity=map->capacity;
+		if(prime < 25)
+			map->capacity=prime_sizes[++prime];
+		else
+			map->capacity=2*(map->capacity);
+		incremental_counter=0;
+		flag=true;
 		// Το παρακάτω assert ελέγχει ότι δεν ξεπερνάμε το μέγιστο συντελεστή
 		// πληρότητας, θα αποτύχει μέχρι να υλοποιηθεί το incremental rehash.
 		assert((float)(map->size + map->deleted) / map->capacity <= MAX_LOAD_FACTOR);
+	}
+	if(flag==true && incremental_counter<map->old_capacity){
+		for(int i=0; i<2; i++){
+			map_insert(map, map->old_array[incremental_counter].key, map->old_array[incremental_counter].value);
+			incremental_counter++;
+			if(incremental_counter == map->old_capacity){
+				flag=false;
+				break;
+			}
+		}
 	}
 }
 
