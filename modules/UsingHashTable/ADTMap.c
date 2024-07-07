@@ -52,6 +52,7 @@ struct map {
 	//
 	MapNode old_array;			// Ο παλιός πίνακας από τον οποίο κάνουμε incremental rehash
 	int old_capacity;			// Πόσο χώρο είχαμε δεσμεύσει στον παλιό πίνακα
+	int old_size;
 };
 
 
@@ -64,6 +65,7 @@ Map map_create(CompareFunc compare, DestroyFunc destroy_key, DestroyFunc destroy
 	// Σε ένα καινούριο map ο παλιός πίνακας είναι απλά κενός
 	map->old_capacity = 0;
 	map->old_array = NULL;
+	map->old_size=0;
 
 	// Αρχικοποιούμε τους κόμβους που έχουμε σαν διαθέσιμους.
 	for (int i = 0; i < map->capacity; i++)
@@ -80,7 +82,7 @@ Map map_create(CompareFunc compare, DestroyFunc destroy_key, DestroyFunc destroy
 
 // Επιστρέφει τον αριθμό των entries του map σε μία χρονική στιγμή.
 int map_size(Map map) {
-	return map->size;
+	return map->size + map->old_size;
 }
 
 // Εισαγωγή στο hash table του ζευγαριού (key, item). Αν το key υπάρχει,
@@ -147,6 +149,8 @@ void map_insert(Map map, Pointer key, Pointer value) {
 		// μελλοντικό insert.
 		map->old_array=map->array;
 		map->old_capacity=map->capacity;
+		map->old_size=map->old_size + map->size;
+		map->size=0;
 		// printf("%d\n",map->capacity);
 		// printf("%d\n",1000);
 		// printf("%d\n",map->old_capacity);
@@ -184,6 +188,7 @@ void map_insert(Map map, Pointer key, Pointer value) {
 				//printf("%d\n",66);
 				flag=false;
 				map_insert(map, map->old_array[incremental_counter].key, map->old_array[incremental_counter].value);
+				map->old_size--;
 				flag=true;
 				//printf("succesful insert\n");
 			}
@@ -302,6 +307,7 @@ MapNode map_find_node(Map map, Pointer key) {
 	}
 
 	count = 0;
+	if(map->old_array!=NULL){
 	for (uint pos = map->hash_function(key) % map->old_capacity;		// ξεκινώντας από τη θέση που κάνει hash το key
 		map->old_array[pos].state != EMPTY;							// αν φτάσουμε σε EMPTY σταματάμε
 		pos = (pos + 1) % map->old_capacity) {						// linear probing, γυρνώντας στην αρχή όταν φτάσουμε στη τέλος του πίνακα
@@ -315,6 +321,7 @@ MapNode map_find_node(Map map, Pointer key) {
 		count++;
 		if (count == map->old_capacity)
 			break;
+	}
 	}
 
 	return MAP_EOF;
