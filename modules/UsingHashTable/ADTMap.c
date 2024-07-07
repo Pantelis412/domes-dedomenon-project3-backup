@@ -9,6 +9,8 @@
 
 #include "ADTMap.h"
 
+#include <stdio.h>
+
 
 // Οι κόμβοι του map στην υλοποίηση με hash table, μπορούν να είναι σε 3 διαφορετικές καταστάσεις,
 // ώστε αν διαγράψουμε κάποιον κόμβο, αυτός να μην είναι empty, ώστε να μην επηρεάζεται η αναζήτηση
@@ -83,7 +85,7 @@ int map_size(Map map) {
 
 // Εισαγωγή στο hash table του ζευγαριού (key, item). Αν το key υπάρχει,
 // ανανέωση του με ένα νέο value, και η συνάρτηση επιστρέφει true.
-int prime=0; //βοηθητική μεταβλητη για το rehash
+int prime; //βοηθητική μεταβλητη για το rehash
 int incremental_counter;
 bool flag=false;
 void map_insert(Map map, Pointer key, Pointer value) {
@@ -136,6 +138,7 @@ void map_insert(Map map, Pointer key, Pointer value) {
 	// Αν με την νέα εισαγωγή ξεπερνάμε το μέγιστο load factor, πρέπει να κάνουμε rehash.
 	// Στο load factor μετράμε και τα DELETED, γιατί και αυτά επηρρεάζουν τις αναζητήσεις.
 	float load_factor = (float)(map->size + map->deleted) / map->capacity;
+	//printf("%f load before\n", load_factor);
 	if (load_factor > MAX_LOAD_FACTOR) {
 		// TODO
 		//
@@ -144,22 +147,49 @@ void map_insert(Map map, Pointer key, Pointer value) {
 		// μελλοντικό insert.
 		map->old_array=map->array;
 		map->old_capacity=map->capacity;
-		if(prime < 25)
+		// printf("%d\n",map->capacity);
+		// printf("%d\n",1000);
+		// printf("%d\n",map->old_capacity);
+		if(prime < 24){
 			map->capacity=prime_sizes[++prime];
-		else
+			// printf("%d\n",11);
+		}
+		else{
+			// printf("%d\n",221);
 			map->capacity=2*(map->capacity);
+			// printf("%d\n",222);
+		}
+		load_factor = (float)(map->size + map->deleted) / map->capacity;
+		// printf("%f load after\n", load_factor);
+		// printf("%d\n",33);
 		map->array = malloc(map->capacity * sizeof(struct map_node));
+		// printf("%d\n",44);
+		// Αρχικοποιούμε τους κόμβους που έχουμε σαν διαθέσιμους.
+		for (int i = 0; i < map->capacity; i++)
+			map->array[i].state = EMPTY;
 		incremental_counter=0;
 		flag=true;
+		// printf("%d\n",55);
+		// printf("%d\n", map->capacity);
+		// printf("%d\n", map->old_capacity);
 		// Το παρακάτω assert ελέγχει ότι δεν ξεπερνάμε το μέγιστο συντελεστή
 		// πληρότητας, θα αποτύχει μέχρι να υλοποιηθεί το incremental rehash.
 		assert((float)(map->size + map->deleted) / map->capacity <= MAX_LOAD_FACTOR);
 	}
 	if(flag==true && incremental_counter<map->old_capacity){
 		for(int i=0; i<2; i++){
-			map_insert(map, map->old_array[incremental_counter].key, map->old_array[incremental_counter].value);
+			// printf("%d\n",incremental_counter);
+			// printf("%d\n",i);
+			if(map->old_array[incremental_counter].state == OCCUPIED){
+				//printf("%d\n",66);
+				flag=false;
+				map_insert(map, map->old_array[incremental_counter].key, map->old_array[incremental_counter].value);
+				flag=true;
+				//printf("succesful insert\n");
+			}
 			incremental_counter++;
 			if(incremental_counter == map->old_capacity){
+				printf("end\n");
 				flag=false;
 				break;
 			}
@@ -268,6 +298,22 @@ MapNode map_find_node(Map map, Pointer key) {
 		// αυτό μπορεί να συμβεί μόνο στην ακραία περίπτωση που ο πίνακας έχει γεμίσει DELETED τιμές!
 		count++;
 		if (count == map->capacity)
+			break;
+	}
+
+	count = 0;
+	for (uint pos = map->hash_function(key) % map->old_capacity;		// ξεκινώντας από τη θέση που κάνει hash το key
+		map->old_array[pos].state != EMPTY;							// αν φτάσουμε σε EMPTY σταματάμε
+		pos = (pos + 1) % map->old_capacity) {						// linear probing, γυρνώντας στην αρχή όταν φτάσουμε στη τέλος του πίνακα
+
+		// Μόνο σε OCCUPIED θέσεις (όχι DELETED), ελέγχουμε αν το key είναι εδώ
+		if (map->old_array[pos].state == OCCUPIED && map->compare(map->old_array[pos].key, key) == 0)
+			return &map->old_array[pos];
+
+		// Αν διασχίσουμε ολόκληρο τον πίνακα σταματάμε. Εφόσον ο πίνακας δεν μπορεί να είναι όλος OCCUPIED,
+		// αυτό μπορεί να συμβεί μόνο στην ακραία περίπτωση που ο πίνακας έχει γεμίσει DELETED τιμές!
+		count++;
+		if (count == map->old_capacity)
 			break;
 	}
 

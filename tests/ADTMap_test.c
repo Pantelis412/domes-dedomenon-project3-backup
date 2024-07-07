@@ -8,6 +8,7 @@
 #include "acutest.h"			// Απλή βιβλιοθήκη για unit testing
 
 #include "ADTMap.h"
+#include <stdio.h>
 
 
 // Δημιουργούμε μια ειδική compare συνάρτηση
@@ -41,6 +42,7 @@ int* create_int(int value) {
 // Βοηθητική συνάρτηση, κάνει insert και ελέγχει αν έγινε η εισαγωγή
 void insert_and_test(Map map, Pointer key, Pointer value) {
 	map_insert(map, key, value);
+	//printf("no problem in map insert ");
 	TEST_ASSERT(map_find(map, key) == value);
 }
 
@@ -94,7 +96,7 @@ void test_insert(void) {
 
 		// Εισαγωγή, δοκιμή και έλεγχος ότι ενημερώθηκε το size
 		insert_and_test(map, key_array[i], value_array[i]);
-
+		printf("%d\n",map_size(map));
 		TEST_ASSERT(map_size(map) == (i + 1)); 
 	}
 
