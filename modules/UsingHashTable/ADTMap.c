@@ -140,7 +140,7 @@ void map_insert(Map map, Pointer key, Pointer value) {
 	// Αν με την νέα εισαγωγή ξεπερνάμε το μέγιστο load factor, πρέπει να κάνουμε rehash.
 	// Στο load factor μετράμε και τα DELETED, γιατί και αυτά επηρρεάζουν τις αναζητήσεις.
 	float load_factor = (float)(map->size + map->deleted) / map->capacity;
-	//printf("%f load before\n", load_factor);
+	
 	if (load_factor > MAX_LOAD_FACTOR) {
 		// TODO
 		//
@@ -151,51 +151,35 @@ void map_insert(Map map, Pointer key, Pointer value) {
 		map->old_capacity=map->capacity;
 		map->old_size=map->old_size + map->size;
 		map->size=0;
-		// printf("%d\n",map->capacity);
-		// printf("%d\n",1000);
-		// printf("%d\n",map->old_capacity);
 		if(prime < 24){
 			map->capacity=prime_sizes[++prime];
-			// printf("%d\n",11);
 		}
 		else{
-			// printf("%d\n",221);
 			map->capacity=2*(map->capacity);
-			// printf("%d\n",222);
 		}
 		load_factor = (float)(map->size + map->deleted) / map->capacity;
-		// printf("%f load after\n", load_factor);
-		// printf("%d\n",33);
 		map->array = malloc(map->capacity * sizeof(struct map_node));
-		// printf("%d\n",44);
 		// Αρχικοποιούμε τους κόμβους που έχουμε σαν διαθέσιμους.
 		for (int i = 0; i < map->capacity; i++)
 			map->array[i].state = EMPTY;
 		incremental_counter=0;
 		flag=true;
-		// printf("%d\n",55);
-		// printf("%d\n", map->capacity);
-		// printf("%d\n", map->old_capacity);
 		// Το παρακάτω assert ελέγχει ότι δεν ξεπερνάμε το μέγιστο συντελεστή
 		// πληρότητας, θα αποτύχει μέχρι να υλοποιηθεί το incremental rehash.
 		assert((float)(map->size + map->deleted) / map->capacity <= MAX_LOAD_FACTOR);
 	}
 	if(flag==true && incremental_counter<map->old_capacity){
 		for(int i=0; i<2; i++){
-			// printf("%d\n",incremental_counter);
-			// printf("%d\n",i);
 			if(map->old_array[incremental_counter].state == OCCUPIED){
-				//printf("%d\n",66);
+				
 				flag=false;
 				map_insert(map, map->old_array[incremental_counter].key, map->old_array[incremental_counter].value);
 				map->old_size--;
 				flag=true;
-				//printf("succesful insert\n");
 			}
 			incremental_counter++;
 			if(incremental_counter == map->old_capacity){
-				printf("end\n");
-				flag=false;
+					flag=false;
 				break;
 			}
 		}
@@ -277,7 +261,7 @@ MapNode map_next(Map map, MapNode node) {
 		if (map->array[i].state == OCCUPIED)
 			return &map->array[i];
 	
-		else if(map->old_array[i].state == OCCUPIED){
+		else if(map->old_array[i].state == OCCUPIED && i<map->old_capacity){
 			map_insert(map, map->old_array[i].key, map->old_array[i].value);
 			return &map->array[i];
 		}
