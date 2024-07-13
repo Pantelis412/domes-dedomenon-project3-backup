@@ -273,12 +273,18 @@ MapNode map_first(Map map) {
 
 MapNode map_next(Map map, MapNode node) {
 	// Το node είναι pointer στο i-οστό στοιχείο του array, οπότε node - array == i  (pointer arithmetic!)
-	for (int i = node - map->array + 1; i < map->capacity; i++)
+	for (int i = node - map->array + 1; i < map->capacity; i++){
 		if (map->array[i].state == OCCUPIED)
 			return &map->array[i];
-
+	
+		else if(map->old_array[i].state == OCCUPIED){
+			map_insert(map, map->old_array[i].key, map->old_array[i].value);
+			return &map->array[i];
+		}
+	}
 	return MAP_EOF;
 }
+
 
 Pointer map_node_key(Map map, MapNode node) {
 	return node->key;

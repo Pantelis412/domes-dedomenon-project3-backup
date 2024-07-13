@@ -96,7 +96,7 @@ void test_insert(void) {
 
 		// Εισαγωγή, δοκιμή και έλεγχος ότι ενημερώθηκε το size
 		insert_and_test(map, key_array[i], value_array[i]);
-		printf("%d\n",map_size(map));
+		//printf("%d\n",map_size(map));
 		TEST_ASSERT(map_size(map) == (i + 1)); 
 	}
 
@@ -290,7 +290,7 @@ void test_iterate(void) {
 		seen[*key] = true;
 		count++;
 	}
-
+	printf("%d\n",count);
 	// Αν κάναμε N επαναλήψεις, τότε σίγουρα βρήκαμε όλους τους αριθμούς
 	TEST_ASSERT(count == N);
 
